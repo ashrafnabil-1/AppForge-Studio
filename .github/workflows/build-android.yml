@@ -1,0 +1,40 @@
+name: Generate and Build Android APK
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'examples/starter-project.json'
+      - 'tools/generate-flutter.mjs'
+      - '.github/workflows/build-android.yml'
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: stable
+      - name: Generate Flutter source from JSON
+        run: node tools/generate-flutter.mjs examples/starter-project.json generated_flutter
+      - name: Resolve dependencies
+        working-directory: generated_flutter
+        run: flutter pub get
+      - name: Analyze generated source
+        working-directory: generated_flutter
+        run: flutter analyze
+      - name: Test generated source
+        working-directory: generated_flutter
+        run: flutter test
+      - name: Build APK
+        working-directory: generated_flutter
+        run: flutter build apk --release
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: appforge-generated-apk
+          path: generated_flutter/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error

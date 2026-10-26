@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "project": {
+    "id": "project-starter",
+    "name": "تطبيقي الأول",
+    "packageName": "com.example.myapp",
+    "themeColor": "#6750a4"
+  },
+  "pages": [
+    {
+      "id": "page-home",
+      "name": "الرئيسية",
+      "nodes": [
+        {
+          "id": "node-welcome",
+          "type": "text",
+          "props": {
+            "text": "مرحبًا بك في تطبيقي",
+            "fontSize": 24,
+            "color": "#202124",
+            "align": "center"
+          }
+        },
+        {
+          "id": "node-desc",
+          "type": "text",
+          "props": {
+            "text": "تم توليد هذه الواجهة من مخطط AppForge JSON",
+            "fontSize": 15,
+            "color": "#5f6368",
+            "align": "center"
+          }
+        },
+        {
+          "id": "node-button",
+          "type": "button",
+          "props": {
+            "text": "ابدأ الآن",
+            "fontSize": 16,
+            "color": "#ffffff",
+            "background": "#6750a4",
+            "align": "center"
+          }
+        },
+        {
+          "id": "node-input",
+          "type": "input",
+          "props": {
+            "text": "اسم المستخدم",
+            "fontSize": 16,
+            "color": "#202124",
+            "align": "right"
+          }
+        }
+      ]
+    },
+    {
+      "id": "page-about",
+      "name": "حول التطبيق",
+      "nodes": [
+        {
+          "id": "node-about",
+          "type": "text",
+          "props": {
+            "text": "صفحة ثانية مولّدة",
+            "fontSize": 22,
+            "color": "#202124",
+            "align": "center"
+          }
+        }
+      ]
+    }
+  ],
+  "dataSources": [
+    {
+      "id": "local-default",
+      "type": "local",
+      "name": "تخزين محلي"
+    }
+  ]
+}
