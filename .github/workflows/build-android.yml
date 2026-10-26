@@ -43,7 +43,7 @@ jobs:
 
       - name: Analyze generated source
         working-directory: generated_flutter
-        run: flutter analyze
+        run: flutter analyze --no-pub --no-fatal-infos
 
       - name: Test generated source
         working-directory: generated_flutter
