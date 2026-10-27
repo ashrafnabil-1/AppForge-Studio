@@ -12,3 +12,4 @@ android/local.properties
 build/
 .dart_tool/
 .flutter-plugins*
+tsconfig.tsbuildinfo
