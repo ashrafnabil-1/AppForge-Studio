@@ -1,92 +1,92 @@
-# AppForge Studio — النواة الأولية
+# AppForge Studio
 
-منصة ويب عربية RTL أولية لمحرر مرئي لمخطط تطبيقات. هذه **نواة قابلة للتطوير** وليست منصة مكتملة، ولا تدّعي حاليًا توليد مشروع Flutter أو APK.
+منصة عربية RTL لبناء مخطط واجهة مرئي من الهاتف، مع تصدير JSON ومولّدين أوليين لمخرجات Flutter وWeb. هذه نسخة MVP قابلة للتطوير وليست بديلًا عن اختبار التطبيق النهائي قبل النشر.
 
-## ما يعمل في هذه النسخة
-- واجهة React + TypeScript + Vite متجاوبة بالعربية.
-- إنشاء مشروع تجريبي جديد، إضافة عناصر أساسية وتحديدها وحذفها.
-- تعديل النص، اللون، حجم الخط، والمحاذاة للعناصر المدعومة.
-- إضافة صفحات والتبديل بينها.
-- حفظ تلقائي في `localStorage` مع تحميل أولي آمن.
-- تصدير المخطط بصيغة JSON واستيراده مع التحقق باستخدام Zod.
-- تراجع/إعادة ضمن جلسة المحرر.
-- اختبارات لمخطط البيانات واستيراد/تصدير JSON.
+## الميزات الحالية
 
-## غير منفذ بعد
-- مولّد أولي مستقل لملفات Flutter/Dart عبر `tools/generate-flutter.mjs` من JSON.
-- Workflow لبناء APK حقيقي من المثال عبر GitHub Actions، لكن لم يُشغّل بعد في GitHub؛ لا يوجد APK مرفق في ZIP.
-- Firebase أو REST أو تسجيل دخول أو مزامنة سحابية.
-- محرر إجراءات مرئي كامل، وإعادة ترتيب بالسحب، ورفع صور حقيقي.
-- معاينة مطابقة 100% لسلوك تطبيق Android النهائي.
+- واجهة React + TypeScript + Vite بالعربية واتجاه RTL.
+- إضافة عناصر واجهة أساسية وتعديل النص والألوان والمحاذاة والحجم.
+- دعم بنية عناصر متداخلة: حدّد بطاقة أو حاوية أو صفًا أو عمودًا، ثم أضف عنصرًا ليصبح طفلًا بداخلها.
+- تحديد العناصر المتداخلة وتعديل خصائصها وحذفها.
+- صفحات متعددة، تراجع/إعادة، حفظ محلي تلقائي، واستيراد/تصدير JSON مع تحقق Zod.
+- مولّد Flutter ينتج `lib/main.dart` و`pubspec.yaml` واختبار Widget، مع دعم العناصر المتداخلة.
+- مولّد Web ينتج صفحة HTML ثابتة متعددة الصفحات من مخطط JSON.
+- اختبارات للمخطط والمولّدين.
+- GitHub Actions للتحقق من تطبيق الويب وبناء APK كـArtifact.
 
-## المتطلبات
-- Node.js 20 أو أحدث وnpm. يمكن استخدام GitHub Codespaces أو بيئة تطوير ويب من الهاتف إذا لم يتوفر Node داخل Termux.
-- Termux حديث من مصدر موثوق، عند تشغيل الأوامر محليًا.
+## التشغيل من Termux أو أي بيئة Node.js
 
-## التشغيل من Termux (Android)
+يتطلب Node.js 20 أو أحدث وnpm.
+
 ```sh
-pkg update
-pkg install nodejs git unzip
-node --version
-npm --version
-cd appforge-studio
 npm install
 npm test
 npm run build
 npm run dev -- --host 0.0.0.0
 ```
-افتح عنوان Vite الذي يظهر في Termux من متصفح الهاتف. إذا كان `localhost` غير متاح بسبب إعدادات الشبكة، استخدم عنوان `http://127.0.0.1:5173`.
 
-## تشغيل الاختبارات والبناء
+افتح العنوان الذي يعرضه Vite في متصفح الهاتف، عادةً `http://127.0.0.1:5173`.
+
+## توليد نسخة ويب ثابتة
+
 ```sh
-npm test
-npm run build
+node tools/generate-web.mjs examples/starter-project.json generated_web
 ```
-الاختبارات تتحقق من بنية المخطط والتصدير والاستيراد. Workflow `Validate AppForge Web` يشغّل الاختبارات وبناء الويب عند رفع المستودع. Workflow `Generate and Build Android APK` يولّد مشروع Flutter من `examples/starter-project.json` ثم يحلّل ويختبر ويبني APK ويرفعه كـArtifact. لم يتم تشغيل Workflow سحابيًا من هنا.
 
-## تصدير واستيراد
-من شريط الأدوات اختر «تصدير JSON» لحفظ المخطط. لاستيراده اختر ملف JSON. تحقّق المنصة من المخطط قبل استبدال المشروع الحالي.
+سيظهر `generated_web/index.html`. يمكنك فتحه مباشرة أو رفع المجلد إلى خدمة استضافة ملفات ثابتة.
 
-## رفع المشروع إلى GitHub من الهاتف
-1. فك ضغط ZIP في Termux.
-2. أنشئ مستودعًا فارغًا من موقع GitHub عبر المتصفح.
-3. داخل مجلد المشروع نفّذ:
+## توليد مصدر Flutter
+
+```sh
+node tools/generate-flutter.mjs examples/starter-project.json generated_flutter
+```
+
+المولّد يكتب ملفات المصدر الأساسية. لبناء APK تحتاج Flutter SDK وAndroid SDK، وإنشاء هيكل مشروع Android أولًا:
+
+```sh
+flutter create --project-name appforge_generated_app --platforms=android generated_flutter
+node tools/generate-flutter.mjs examples/starter-project.json generated_flutter
+cd generated_flutter
+flutter pub get
+flutter analyze --no-pub --no-fatal-infos
+flutter test
+flutter build apk --release
+```
+
+ملف APK لا يُنشأ بمجرد تشغيل مولّد Node؛ يجب تنفيذ خطوات Flutter بنجاح. في GitHub Actions، افتح تبويب **Actions** ثم تشغيل البناء الناجح ونزّل `appforge-generated-apk` من **Artifacts**.
+
+## GitHub Actions
+
+- `Validate AppForge Web`: يشغّل الاختبارات وبناء Vite.
+- `Generate and Build Android APK`: ينشئ هيكل Flutter/Android، ويولّد المصدر من المثال، ثم يحلّل ويختبر ويبني APK ويرفعه كـArtifact.
+
+تعمل هذه المسارات عند الأحداث المحددة في ملفات `.github/workflows/`، ويمكن تشغيل مسار Android يدويًا من تبويب Actions إذا كان `workflow_dispatch` متاحًا.
+
+## حدود النسخة الحالية
+
+- زر Flutter المولّد يعرض رسالة مؤقتة؛ لا توجد بعد إجراءات مخصصة أو محرر ربط أزرار بالصفحات.
+- الصور عناصر نائبة، وليست رفعًا أو إدارة ملفات صور حقيقية.
+- لا توجد مزامنة سحابية أو Firebase أو تسجيل دخول.
+- معاينة المحرر ليست مطابقة تمامًا لتطبيق Android النهائي.
+- لم يُرفق APK مبني مسبقًا؛ يتم بناؤه في بيئة Flutter/Android أو GitHub Actions.
+
+## رفع المشروع من الهاتف
+
+بعد فك ضغط الملف والدخول إلى مجلد المشروع:
+
 ```sh
 git init
 git add .
-git commit -m "Initial AppForge Studio MVP"
+git commit -m "AppForge Studio MVP"
 git branch -M main
 git remote add origin https://github.com/USERNAME/REPOSITORY.git
 git push -u origin main
 ```
-استبدل `USERNAME/REPOSITORY` بعنوان مستودعك. لا تضع كلمة مرور أو PAT داخل الملفات. إذا طلب Git مصادقة، استخدم طريقة المصادقة الرسمية من GitHub.
 
-## خطة التطوير المقترحة
-1. تثبيت مخطط JSON وإضافة migrations.
-2. بناء اختبارات تفاعلية وواجهة إدارة مشاريع.
-3. تطوير مولّد Flutter مع قوالب موثوقة واختبار build في CI.
-4. إضافة إجراءات محدودة ذات أنواع واضحة، لا تنفيذ نصوص عشوائية.
-5. إضافة مزود بيانات محلي ثم Firebase مع قواعد أمان.
-6. إضافة GitHub Actions لبناء APK كـArtifact بعد اختبار مشروع مولّد حقيقي.
+استبدل `USERNAME/REPOSITORY` بعنوان مستودعك. لا تضع رموز الوصول أو كلمات المرور داخل الملفات.
 
-## الأمان
-- لا توجد أسرار أو مفاتيح API في هذا المستودع.
-- بيانات المشاريع في هذه النسخة محفوظة محليًا في المتصفح فقط.
-- إعدادات Firebase العامة ليست بديلًا عن Security Rules.
-- لا تستخدم بيانات حقيقية حساسة في النسخة الأولية.
+## الخصوصية والأمان
 
-
-## مولّد Flutter (نسخة أولية)
-يمكن توليد مشروع Flutter من مخطط JSON على أي بيئة فيها Node.js:
-```sh
-node tools/generate-flutter.mjs examples/starter-project.json generated_flutter
-```
-ينشئ المولّد `lib/main.dart` و`pubspec.yaml` وملف manifest واختبار widget. ثم على بيئة Flutter:
-```sh
-cd generated_flutter
-flutter pub get
-flutter analyze
-flutter test
-flutter build apk --release
-```
-المولّد الحالي يغطي العناصر الأساسية فقط. عناصر الصورة والصفوف/الأعمدة/القوائم هي تمثيلات أولية وليست تنفيذًا كاملًا لكل دلالاتها. Workflow أندرويد يعيد توليد المشروع عند التشغيل ولا يضع APK في المستودع؛ تحصل عليه من تبويب Actions ثم Artifacts بعد نجاح البناء.
+- بيانات المحرر تُحفظ محليًا في متصفحك.
+- لا تضف أسرار API أو مفاتيح خاصة إلى المستودع.
+- راجع واختبر المخرجات قبل استخدامها مع بيانات حقيقية أو نشرها للمستخدمين.

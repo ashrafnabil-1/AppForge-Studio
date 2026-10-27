@@ -11,7 +11,7 @@ assert(project.schemaVersion === 1, 'Unsupported schemaVersion; expected 1.');
 assert(project.project && typeof project.project.name === 'string', 'Missing project.name.');
 assert(/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(project.project.packageName), 'Invalid project.packageName.');
 assert(Array.isArray(project.pages) && project.pages.length > 0, 'Project must contain at least one page.');
-const safe = (s) => String(s ?? '').replaceAll('\\', '\\\\').replaceAll("'", "\\'").replaceAll('$', '\\$');
+const safe = (s) => String(s ?? '').replaceAll('\\', '\\\\').replaceAll("'", "\\'").replaceAll('$', '\\$').replaceAll('\n', '\\n').replaceAll('\r', '\\r');
 const dartColor = (v, fallback = '#6750a4') => {
   const m = /^#([0-9a-fA-F]{6})$/.exec(String(v ?? fallback));
   return `Color(0xFF${m ? m[1].toUpperCase() : fallback.slice(1).toUpperCase()})`;
@@ -22,19 +22,26 @@ function nodeWidget(node) {
   const color = dartColor(p.color);
   const align = ({left:'TextAlign.left', center:'TextAlign.center', right:'TextAlign.right'})[p.align] || 'TextAlign.right';
   const size = Math.min(72, Math.max(8, Number(p.fontSize ?? 16)));
+  const children = Array.isArray(node.children) ? node.children : [];
+  const childWidgets = children.map(nodeWidget).join(',\n');
+  const childColumn = children.length
+    ? `Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [${childWidgets}])`
+    : `Text('${safe(p.text ?? node.type)}', textAlign: ${align}, style: TextStyle(fontSize: ${size}, color: ${color}))`;
   switch (node.type) {
     case 'text': return `Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Text('${text}', textAlign: ${align}, style: TextStyle(fontSize: ${size}, color: ${color})))`;
-    case 'button': return `Padding(padding: const EdgeInsets.symmetric(vertical: 5), child: SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم الضغط على الزر'))), style: ElevatedButton.styleFrom(backgroundColor: ${dartColor(p.background)}, foregroundColor: ${color}), child: Text('${text}', style: const TextStyle(fontSize: ${size})))))`;
+    case 'button': return `Padding(padding: const EdgeInsets.symmetric(vertical: 5), child: SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم الضغط على الزر'))), style: ElevatedButton.styleFrom(backgroundColor: ${dartColor(p.background)}, foregroundColor: ${color}), child: Text('${text}', style: TextStyle(fontSize: ${size})))))`;
     case 'input': return `Padding(padding: const EdgeInsets.symmetric(vertical: 5), child: TextField(decoration: InputDecoration(labelText: '${text}', border: const OutlineInputBorder())))`;
     case 'divider': return `Divider(color: ${color})`;
     case 'spacer': return `SizedBox(height: ${Math.min(300, Math.max(0, Number(p.height ?? 24)))})`;
     case 'image': return `Container(width: double.infinity, padding: const EdgeInsets.all(20), color: ${dartColor(p.background, '#EEEEEE')}, child: const Icon(Icons.image_outlined, size: 36))`;
-    case 'card': case 'container': case 'list': case 'row': case 'column': case 'scroll':
-      return `Container(width: double.infinity, margin: const EdgeInsets.symmetric(vertical: 4), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: ${dartColor(p.background, '#F3F0FA')}, borderRadius: BorderRadius.circular(10)), child: Text('${text || node.type}', textAlign: ${align}, style: TextStyle(color: ${color}, fontSize: ${size})))`;
+    case 'card': return `Card(child: Padding(padding: const EdgeInsets.all(12), child: ${childColumn}))`;
+    case 'container': return `Container(width: double.infinity, margin: const EdgeInsets.symmetric(vertical: 4), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: ${dartColor(p.background, '#F3F0FA')}, borderRadius: BorderRadius.circular(10)), child: ${childColumn})`;
+    case 'row': return `Row(crossAxisAlignment: CrossAxisAlignment.start, children: [${children.length ? childWidgets : `Expanded(child: ${childColumn})`}])`;
+    case 'column': case 'list': return childColumn;
+    case 'scroll': return `SingleChildScrollView(child: ${childColumn})`;
     default: return `Text('${text}')`;
   }
 }
-const pageNames = project.pages.map((p, i) => `page${i}`).join(', ');
 const pageBodies = project.pages.map((page, i) => `
   Widget _page${i}(BuildContext context) => ListView(
     padding: const EdgeInsets.all(16),

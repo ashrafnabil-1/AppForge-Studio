@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
-    "test": "vitest run && node --test tools/generator.test.mjs",
+    "test": "vitest run src && node --test tools/generator.test.mjs tools/web-generator.test.mjs",
     "test:watch": "vitest",
-    "test:generator": "node --test tools/generator.test.mjs"
+    "test:generator": "node --test tools/generator.test.mjs tools/web-generator.test.mjs",
+    "generate:flutter": "node tools/generate-flutter.mjs",
+    "generate:web": "node tools/generate-web.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",

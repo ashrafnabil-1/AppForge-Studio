@@ -24,6 +24,31 @@ function makeNode(type: NodeType): DesignNode {
   return { id: createId(type), type, props: defaults[type] };
 }
 
+function findNode(nodes: DesignNode[], id: string | null): DesignNode | null {
+  if (!id) return null;
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    const nested = findNode(node.children ?? [], id);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+function updateNodeTree(nodes: DesignNode[], id: string, updater: (node: DesignNode) => DesignNode): DesignNode[] {
+  return nodes.map(node => node.id === id
+    ? updater(node)
+    : { ...node, ...(node.children ? { children: updateNodeTree(node.children, id, updater) } : {}) });
+}
+
+function removeNodeTree(nodes: DesignNode[], id: string): DesignNode[] {
+  return nodes.filter(node => node.id !== id).map(node => ({
+    ...node,
+    ...(node.children ? { children: removeNodeTree(node.children, id) } : {})
+  }));
+}
+
+const containerTypes: NodeType[] = ['card', 'container', 'list', 'row', 'column', 'scroll'];
+
 function readSaved(): ProjectDocument {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -41,7 +66,7 @@ export default function App() {
   const [toast, setToast] = useState('');
   const importRef = useRef<HTMLInputElement>(null);
   const page = project.pages.find(p => p.id === pageId) ?? project.pages[0];
-  const selected = page.nodes.find(n => n.id === selectedId) ?? null;
+  const selected = findNode(page.nodes, selectedId);
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(project)); }
@@ -62,18 +87,27 @@ export default function App() {
 
   const addNode = (type: NodeType) => {
     const node = makeNode(type);
-    updateProject(p => ({ ...p, pages: p.pages.map(pg => pg.id === page.id ? { ...pg, nodes: [...pg.nodes, node] } : pg) }));
+    updateProject(p => ({ ...p, pages: p.pages.map(pg => {
+      if (pg.id !== page.id) return pg;
+      if (selected && containerTypes.includes(selected.type)) {
+        return { ...pg, nodes: updateNodeTree(pg.nodes, selected.id, parent => ({ ...parent, children: [...(parent.children ?? []), node] })) };
+      }
+      return { ...pg, nodes: [...pg.nodes, node] };
+    }) }));
     setSelectedId(node.id);
+    setToast(selected && containerTypes.includes(selected.type) ? 'تمت إضافة العنصر داخل العنصر المحدد.' : 'تمت إضافة العنصر إلى الصفحة.');
   };
   const updateSelected = (key: string, value: string | number) => {
     if (!selected) return;
-    updateProject(p => ({ ...p, pages: p.pages.map(pg => pg.id === page.id ? {
-      ...pg, nodes: pg.nodes.map(n => n.id === selected.id ? { ...n, props: { ...n.props, [key]: value } } : n)
-    } : pg) }));
+    updateProject(p => ({ ...p, pages: p.pages.map(pg => pg.id === page.id
+      ? { ...pg, nodes: updateNodeTree(pg.nodes, selected.id, node => ({ ...node, props: { ...node.props, [key]: value } })) }
+      : pg) }));
   };
   const deleteSelected = () => {
     if (!selected) return;
-    updateProject(p => ({ ...p, pages: p.pages.map(pg => pg.id === page.id ? { ...pg, nodes: pg.nodes.filter(n => n.id !== selected.id) } : pg) }));
+    updateProject(p => ({ ...p, pages: p.pages.map(pg => pg.id === page.id
+      ? { ...pg, nodes: removeNodeTree(pg.nodes, selected.id) }
+      : pg) }));
     setSelectedId(null);
   };
   const addPage = () => {
@@ -108,21 +142,31 @@ export default function App() {
     setHistory(h => [...h, project]); setProject(future[0]); setFuture(f => f.slice(1)); setToast('تمت الإعادة.');
   };
   const nodeLabel = (node: DesignNode) => String(node.props.text ?? ({ divider: 'فاصل', spacer: 'مسافة' } as Record<string, string>)[node.type] ?? node.type);
-  const renderNode = (node: DesignNode) => {
+  const renderNode = (node: DesignNode): JSX.Element => {
     const props = node.props;
+    const label = nodeLabel(node);
     const style: CSSProperties = {
       color: String(props.color ?? '#202124'), fontSize: `${Number(props.fontSize ?? 16)}px`,
       textAlign: (['right', 'center', 'left'].includes(String(props.align)) ? props.align : 'right') as CSSProperties['textAlign'],
-      backgroundColor: String(props.background ?? 'transparent'), borderRadius: node.type === 'card' || node.type === 'container' ? 12 : 6,
-      padding: node.type === 'divider' ? '0' : '10px', minHeight: node.type === 'spacer' ? Number(props.height ?? 24) : undefined
+      backgroundColor: String(props.background ?? 'transparent'),
+      borderRadius: node.type === 'card' || node.type === 'container' ? 12 : 6,
+      padding: node.type === 'divider' || node.type === 'spacer' ? '0' : '10px',
+      minHeight: node.type === 'spacer' ? Number(props.height ?? 24) : undefined
     };
-    if (node.type === 'divider') return <div className="preview-divider" style={{ background: String(props.color ?? '#dadce0') }} />;
-    if (node.type === 'spacer') return <div style={{ height: Number(props.height ?? 24) }} />;
-    if (node.type === 'button') return <button className="preview-button" style={{ ...style, background: String(props.background ?? '#6750a4') }} onClick={() => setToast(`معاينة: ${nodeLabel(node)}`)}>{nodeLabel(node)}</button>;
-    if (node.type === 'input') return <input className="preview-input" style={style} placeholder={nodeLabel(node)} aria-label={nodeLabel(node)} />;
-    if (node.type === 'image') return <div className="preview-image" style={style}>▧ {nodeLabel(node)}<small>عنصر صورة تجريبي</small></div>;
-    if (['card', 'container', 'list', 'row', 'column', 'scroll'].includes(node.type)) return <div className={`preview-node ${node.type}`} style={style}>{nodeLabel(node)}</div>;
-    return <div className="preview-text" style={style}>{nodeLabel(node)}</div>;
+    let content: JSX.Element;
+    if (node.type === 'divider') content = <div className="preview-divider" style={{ background: String(props.color ?? '#dadce0') }} />;
+    else if (node.type === 'spacer') content = <div style={{ height: Number(props.height ?? 24) }} />;
+    else if (node.type === 'button') content = <button className="preview-button" style={{ ...style, background: String(props.background ?? '#6750a4') }} onClick={e => { e.stopPropagation(); setSelectedId(node.id); setToast(`معاينة: ${label}`); }}>{label}</button>;
+    else if (node.type === 'input') content = <input className="preview-input" style={style} placeholder={label} aria-label={label} onClick={e => { e.stopPropagation(); setSelectedId(node.id); }} />;
+    else if (node.type === 'image') content = <div className="preview-image" style={style}>▧ {label}<small>عنصر صورة تجريبي</small></div>;
+    else if (containerTypes.includes(node.type)) {
+      const children = node.children ?? [];
+      const layoutClass = node.type === 'row' ? 'nested-row' : node.type === 'scroll' ? 'nested-scroll' : 'nested-column';
+      content = <div className={`preview-node ${node.type} ${layoutClass}`} style={style}>
+        {children.length ? children.map(child => <div key={child.id} className={`selectable nested-selectable ${selectedId === child.id ? 'selected' : ''}`} onClick={e => { e.stopPropagation(); setSelectedId(child.id); }}>{renderNode(child)}{selectedId === child.id && <span className="selection-tag">محدد</span>}</div>) : <span>{label}</span>}
+      </div>;
+    } else content = <div className="preview-text" style={style}>{label}</div>;
+    return <>{content}</>;
   };
   const pageTitle = useMemo(() => page.name, [page.name]);
 
@@ -145,7 +189,7 @@ export default function App() {
     <main className="workspace">
       <aside className="panel elements-panel">
         <div className="panel-heading"><div><span className="eyebrow">BUILD</span><h2>العناصر</h2></div><span className="count">{palette.length}</span></div>
-        <p className="muted">اضغط لإضافة عنصر إلى الصفحة</p>
+        <p className="muted">حدد حاوية أو بطاقة أولًا لإضافة عنصر بداخلها؛ وإلا فسيُضاف للصفحة</p>
         <div className="element-grid">{palette.map(item => <button className="element-tile" key={item.type} onClick={() => addNode(item.type)}><span className="element-icon">{item.icon}</span><span>{item.label}</span></button>)}</div>
         <div className="panel-footer"><span className="dot-purple" /> عناصر أساسية قابلة للتعديل</div>
       </aside>

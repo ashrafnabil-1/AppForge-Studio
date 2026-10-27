@@ -6,7 +6,7 @@ export const NodeTypeSchema = z.enum([
 ]);
 export type NodeType = z.infer<typeof NodeTypeSchema>;
 
-export const NodeSchema: z.ZodType<DesignNode> = z.lazy(() => z.object({
+export const NodeSchema: z.ZodType<DesignNode, z.ZodTypeDef, unknown> = z.lazy(() => z.object({
   id: z.string().min(1),
   type: NodeTypeSchema,
   props: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).default({}),
